@@ -92,7 +92,7 @@ public class JuheWeather {
             conn.setReadTimeout(DEF_READ_TIMEOUT);
             conn.setInstanceFollowRedirects(false);
             conn.connect();
-            if (params!= null && method.equals("POST")) {
+            if (method != null && params != null && method.equals("POST")) {
                 try (DataOutputStream out = new DataOutputStream(conn.getOutputStream())) {
                     out.writeBytes(urlencode(params));
                 }
@@ -455,7 +455,7 @@ public class JuheWeather {
         info.weatherNow = juheResult.result.data.realtime.weatherNow.weatherInfo;
         info.weatherKindNow = JuheWeather.getWeatherKind(info.weatherNow);
         info.tempNow = juheResult.result.data.realtime.weatherNow.temperature;
-        info.aqiLevel = "空气质量 " + juheResult.result.data.air.pm25.quality;
+        info.aqiLevel = "空气 " + juheResult.result.data.air.pm25.quality;
 
         info.week = new String[] {
                 context.getString(R.string.week) + juheResult.result.data.weather.get(0).week,

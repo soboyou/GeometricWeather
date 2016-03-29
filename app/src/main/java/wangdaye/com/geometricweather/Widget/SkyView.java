@@ -11,7 +11,7 @@ import android.util.AttributeSet;
 import android.view.View;
 
 import wangdaye.com.geometricweather.R;
-import wangdaye.com.geometricweather.UI.MainActivity;
+import wangdaye.com.geometricweather.View.MainActivity;
 
 /**
  * Show the sky.

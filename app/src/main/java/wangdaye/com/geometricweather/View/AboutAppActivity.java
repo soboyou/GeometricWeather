@@ -1,4 +1,4 @@
-package wangdaye.com.geometricweather.UI;
+package wangdaye.com.geometricweather.View;
 
 import android.app.ActivityManager;
 import android.content.Intent;

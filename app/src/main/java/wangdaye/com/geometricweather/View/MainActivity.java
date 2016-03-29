@@ -1,8 +1,8 @@
-package wangdaye.com.geometricweather.UI;
+package wangdaye.com.geometricweather.View;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.Fragment;
-import android.app.FragmentManager;
 import android.app.FragmentTransaction;
 import android.content.ContentValues;
 import android.content.Context;
@@ -46,7 +46,10 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import wangdaye.com.geometricweather.Data.HefengResult;
 import wangdaye.com.geometricweather.Data.HefengWeather;
+import wangdaye.com.geometricweather.Data.HourlyData;
+import wangdaye.com.geometricweather.Data.JuheResult;
 import wangdaye.com.geometricweather.Data.JuheWeather;
 import wangdaye.com.geometricweather.Data.Location;
 import wangdaye.com.geometricweather.Data.MyDatabaseHelper;
@@ -69,17 +72,10 @@ import wangdaye.com.geometricweather.Widget.SafeHandler;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener,
-        ManageDialog.SetLocationListener,
         HandlerContainer {
     // widget
     public static SafeHandler<MainActivity> safeHandler;
-
-    public static FragmentManager fragmentManager;
     private WeatherFragment weatherFragment;
-
-    private static FrameLayout navHead;
-    private static FrameLayout statusBar;
-    public static Toolbar toolbar;
 
     // data
     public static boolean isDay;
@@ -96,8 +92,8 @@ public class MainActivity extends AppCompatActivity
     private final int LOCATION_PERMISSIONS_REQUEST_CODE = 1;
     private final int WRITE_EXTERNAL_STORAGE_REQUEST_CODE = 2;
 
-    private final static int SETTINGS_ACTIVITY = 1;
-    private final static int SHARE_ACTIVITY = 2;
+    private final int SETTINGS_ACTIVITY = 1;
+    private final int SHARE_ACTIVITY = 2;
 
     public static final int NOTIFICATION_ID = 7;
 
@@ -106,16 +102,12 @@ public class MainActivity extends AppCompatActivity
     private static final int REFRESH_TOTAL_DATA_FAILED = -1;
     private static final int REFRESH_HOURLY_DATA_FAILED = -2;
 
-    // TAG
-//    private static final String TAG = "MainActivity";
-
 // life cycle
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         MainActivity.activityVisibility = true;
-
         this.setStatusBarTransParent();
         setContentView(R.layout.activity_main);
 
@@ -157,6 +149,14 @@ public class MainActivity extends AppCompatActivity
         }
         if (weatherFragment != null) {
             started = true;
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (weatherFragment.location.info == null) {
+            weatherFragment.setCollectImage();
         }
     }
 
@@ -213,7 +213,7 @@ public class MainActivity extends AppCompatActivity
         if (id == R.id.action_collect) {
             for (int i = 0; i < MainActivity.locationList.size(); i ++) {
                 if (lastLocation.location.equals(locationList.get(i).location)) {
-                    WeatherFragment.isCollected = true;
+                    weatherFragment.isCollected = true;
                     Toast.makeText(this,
                             getString(R.string.collect_failed),
                             Toast.LENGTH_SHORT).show();
@@ -222,8 +222,8 @@ public class MainActivity extends AppCompatActivity
             }
             MainActivity.locationList.add(lastLocation);
             this.writeLocation();
-            WeatherFragment.isCollected = true;
-            WeatherFragment.locationCollect.setImageResource(R.drawable.ic_collect_yes);
+            weatherFragment.isCollected = true;
+            weatherFragment.locationCollect.setImageResource(R.drawable.ic_collect_yes);
             Toast.makeText(this,
                     getString(R.string.collect_succeed),
                     Toast.LENGTH_SHORT).show();
@@ -335,8 +335,8 @@ public class MainActivity extends AppCompatActivity
 
 // fragment
 
-    private static void changeFragment(Fragment fragment){
-        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+    private void changeFragment(Fragment fragment){
+        FragmentTransaction fragmentTransaction = getFragmentManager().beginTransaction();
         fragmentTransaction.replace(R.id.fragment_container, fragment);
         fragmentTransaction.commit();
     }
@@ -345,7 +345,6 @@ public class MainActivity extends AppCompatActivity
 
     protected void createApp() {
         this.initWidget();
-        fragmentManager = getFragmentManager();
 
         if (locationList.size() < 1) {
             locationList.add(new Location(getString(R.string.local)));
@@ -354,7 +353,6 @@ public class MainActivity extends AppCompatActivity
         lastLocation = locationList.get(0);
         weatherFragment = new WeatherFragment();
         changeFragment(weatherFragment);
-        setNavHead();
     }
 
     private void setStatusBarTransParent() {
@@ -386,7 +384,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void initWidget() {
-        toolbar = (Toolbar) findViewById(R.id.toolbar);
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         toolbar.setTitle("");
         setSupportActionBar(toolbar);
 
@@ -398,11 +396,9 @@ public class MainActivity extends AppCompatActivity
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
-        View navHeader = navigationView.getHeaderView(0);
-        MainActivity.navHead = (FrameLayout) navHeader.findViewById(R.id.nav_header);
 
-        statusBar = (FrameLayout) findViewById(R.id.background_plate);
-        setStatusBarColor(this, true);
+        FrameLayout statusBar = (FrameLayout) findViewById(R.id.background_plate);
+        setStatusBarColor(this, statusBar, true);
     }
 
     private void initData() {
@@ -415,15 +411,7 @@ public class MainActivity extends AppCompatActivity
         lastLocation = null;
     }
 
-    public static void setNavHead() {
-        if (isDay) {
-            navHead.setBackgroundResource(R.drawable.nav_head_day);
-        } else {
-            navHead.setBackgroundResource(R.drawable.nav_head_night);
-        }
-    }
-
-    public static void setStatusBarColor(Context context, boolean isInit) {
+    public static void setStatusBarColor(Context context, FrameLayout statusBar, boolean isInit) {
         if (isInit) {
             Class<?> c;
             Object obj;
@@ -454,35 +442,34 @@ public class MainActivity extends AppCompatActivity
 
 // refresh data
 
-    public static void getTotalData(final String searchLocation, final boolean isLocation) {
+    public static void getTotalData(final Context context, final Location location, final String searchLocation) {
         Thread thread=new Thread(new Runnable() {
             @Override
             public void run() {
-                if (isLocation) {
-                    lastLocation = new Location("本地");
-                } else {
-                    lastLocation = new Location(searchLocation);
-                }
-                if (searchLocation.replaceAll(" ", "").matches("[a-zA-Z]+")) {
-                    lastLocation.hefengResult = HefengWeather.requestInternationalData(searchLocation);
+                lastLocation = location;
+
+                if (Location.engLocation(searchLocation)) {
+                    HefengResult hefengResult = HefengWeather.requestInternationalData(searchLocation);
                     Message message = new Message();
-                    if (lastLocation.hefengResult == null) {
+                    if (hefengResult == null) {
                         message.what = REFRESH_TOTAL_DATA_FAILED;
-                    } else if (! lastLocation.hefengResult.heWeather.get(0).status.equals("ok")) {
+                    } else if (!hefengResult.heWeather.get(0).status.equals("ok")) {
                         message.what = REFRESH_TOTAL_DATA_FAILED;
                     } else {
                         message.what = REFRESH_TOTAL_DATA_SUCCEED;
+                        lastLocation.info = HefengWeather.getWeatherInfoToShow(context, hefengResult, isDay);
                     }
                     safeHandler.sendMessage(message);
                 } else {
-                    lastLocation.juheResult = JuheWeather.getRequest(searchLocation);
+                    JuheResult juheResult = JuheWeather.getRequest(searchLocation);
                     Message message = new Message();
-                    if (lastLocation.juheResult == null) {
+                    if (juheResult == null) {
                         message.what = REFRESH_TOTAL_DATA_FAILED;
-                    } else if (! lastLocation.juheResult.error_code.equals("0")) {
+                    } else if (!juheResult.error_code.equals("0")) {
                         message.what = REFRESH_TOTAL_DATA_FAILED;
                     } else {
                         message.what = REFRESH_TOTAL_DATA_SUCCEED;
+                        lastLocation.info = JuheWeather.getWeatherInfoToShow(context, juheResult, isDay);
                     }
                     safeHandler.sendMessage(message);
                 }
@@ -496,26 +483,42 @@ public class MainActivity extends AppCompatActivity
             @Override
             public void run() {
                 Message message = new Message();
-                if (lastLocation.location.replaceAll(" ", "").matches("[a-zA-Z]+") && lastLocation.hefengResult == null) {
-                    message.what = REFRESH_HOURLY_DATA_FAILED;
-                } else if (lastLocation.location.replaceAll(" ", "").matches("[a-zA-Z]+") && ! lastLocation.hefengResult.heWeather.get(0).status.equals("ok")) {
-                    message.what = REFRESH_HOURLY_DATA_FAILED;
-                } else if (lastLocation.location.replaceAll(" ", "").matches("[a-zA-Z]+")) {
-                    message.what = REFRESH_HOURLY_DATA_SUCCEED;
-                } else if (lastLocation.juheResult == null) {
-                    message.what = REFRESH_HOURLY_DATA_FAILED;
-                } else if (! lastLocation.juheResult.error_code.equals("0")) {
+                if (lastLocation.info == null) {
                     message.what = REFRESH_HOURLY_DATA_FAILED;
                 } else {
                     SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
                     boolean useEnglish = sharedPreferences.getBoolean(context.getString(R.string.key_get_hourly_data_by_eng), false);
-                    lastLocation.hefengResult = HefengWeather.requestHourlyData(lastLocation.juheResult.result.data.realtime.city_name, useEnglish);
-                    if (lastLocation.hefengResult == null) {
+                    HefengResult hefengResult = HefengWeather.requestHourlyData(lastLocation.info.location, useEnglish);
+                    if (hefengResult == null) {
                         message.what = REFRESH_HOURLY_DATA_FAILED;
-                    } else if (! lastLocation.hefengResult.heWeather.get(0).status.equals("ok")) {
+                    } else if (! hefengResult.heWeather.get(0).status.equals("ok")) {
                         message.what = REFRESH_HOURLY_DATA_FAILED;
                     } else {
                         message.what = REFRESH_HOURLY_DATA_SUCCEED;
+
+                        int position = 0;
+                        String updateTime = hefengResult.heWeather.get(0).basic.update.loc;
+                        for (int i = 1; i < hefengResult.heWeather.size(); i ++) {
+                            if (hefengResult.heWeather.get(i).basic.update.loc.compareTo(updateTime) > 0) {
+                                position = i;
+                                updateTime = hefengResult.heWeather.get(i).basic.update.loc;
+                            }
+                        }
+
+                        if (hefengResult.heWeather.get(position).hourly_forecast.size() == 0) {
+                            lastLocation.hourlyData = null;
+                        } else {
+                            int[] temp = new int[hefengResult.heWeather.get(position).hourly_forecast.size()];
+                            for (int i = 0; i < temp.length; i ++) {
+                                temp[i] = Integer.parseInt(hefengResult.heWeather.get(position).hourly_forecast.get(i).tmp);
+                            }
+                            float[] pop = new float[temp.length];
+                            for (int i = 0; i < temp.length; i ++) {
+                                pop[i] = Float.parseFloat(hefengResult.heWeather.get(position).hourly_forecast.get(i).pop);
+                            }
+
+                            lastLocation.hourlyData = new HourlyData(temp, pop);
+                        }
                     }
                 }
                 safeHandler.sendMessage(message);
@@ -527,30 +530,6 @@ public class MainActivity extends AppCompatActivity
     public static boolean needChangeTime() {
         int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
         return 5 < hour && hour < 19 && !MainActivity.isDay || (hour < 6 || hour > 18) && MainActivity.isDay;
-    }
-
-    @Override
-    public void onSetLocation(String location, boolean isSearch) {
-        if (location.equals(getString(R.string.search_null))) {
-            Toast.makeText(this,
-                    getString(R.string.search_null),
-                    Toast.LENGTH_SHORT).show();
-            return;
-        }
-        if (isSearch) {
-            lastLocation = new Location(location);
-            this.weatherFragment.setLocation();
-            this.weatherFragment.refreshAll();
-        } else {
-            for (int i = 0; i < locationList.size(); i ++) {
-                if (locationList.get(i).location.equals(location)) {
-                    lastLocation = locationList.get(i);
-                    this.weatherFragment.setLocation();
-                    this.weatherFragment.refreshAll();
-                    return;
-                }
-            }
-        }
     }
 
 // database
@@ -592,11 +571,7 @@ public class MainActivity extends AppCompatActivity
     public static void sendNotification(Context context, Location location) {
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
         if(sharedPreferences.getBoolean(context.getString(R.string.key_notification_switch), false)) {
-            if (location.location.replaceAll(" ", "").matches("[a-zA-Z]+")) {
-                NotificationService.refreshNotification(context, HefengWeather.getWeatherInfoToShow(context, location.hefengResult, isDay), false);
-            } else {
-                NotificationService.refreshNotification(context, JuheWeather.getWeatherInfoToShow(context, location.juheResult, isDay), false);
-            }
+            NotificationService.refreshNotification(context, location.info, false);
         }
     }
 
@@ -657,13 +632,15 @@ public class MainActivity extends AppCompatActivity
 
 // share
 
+    @SuppressLint("InflateParams")
     private void shareWeather() {
-        if (weatherFragment.info == null) {
+        if (weatherFragment.location.info == null) {
             Toast.makeText(this,
                     getString(R.string.share_error),
                     Toast.LENGTH_SHORT).show();
             return;
         }
+
 
         View view = getLayoutInflater().inflate(R.layout.share_image, null);
 
@@ -697,10 +674,10 @@ public class MainActivity extends AppCompatActivity
         }
 
         int[][] imageId = new int[][] {
-                JuheWeather.getWeatherIcon(weatherFragment.info.weatherKindNow, isDay),
-                JuheWeather.getWeatherIcon(weatherFragment.info.weatherKind[0], isDay),
-                JuheWeather.getWeatherIcon(weatherFragment.info.weatherKind[1], isDay),
-                JuheWeather.getWeatherIcon(weatherFragment.info.weatherKind[2], isDay)
+                JuheWeather.getWeatherIcon(weatherFragment.location.info.weatherKindNow, isDay),
+                JuheWeather.getWeatherIcon(weatherFragment.location.info.weatherKind[0], isDay),
+                JuheWeather.getWeatherIcon(weatherFragment.location.info.weatherKind[1], isDay),
+                JuheWeather.getWeatherIcon(weatherFragment.location.info.weatherKind[2], isDay)
         };
         for (int i = 0; i < 4; i ++) {
             if (imageId[i][3] != 0) {
@@ -713,18 +690,18 @@ public class MainActivity extends AppCompatActivity
         }
 
         String text;
-        location.setText(weatherFragment.info.location);
-        text = weatherFragment.info.weatherNow + " " + weatherFragment.info.tempNow + "℃";
+        location.setText(weatherFragment.location.info.location);
+        text = weatherFragment.location.info.weatherNow + " " + weatherFragment.location.info.tempNow + "℃";
         weather.setText(text);
-        text = "气温 " +  weatherFragment.info.miniTemp[0] + "/" + weatherFragment.info.maxiTemp[0] + "°";
+        text = getString(R.string.temp) +  weatherFragment.location.info.miniTemp[0] + "/" + weatherFragment.location.info.maxiTemp[0] + "°";
         temp.setText(text);
-        text = weatherFragment.info.windDir[0] + weatherFragment.info.windLevel[0];
+        text = weatherFragment.location.info.windDir[0] + weatherFragment.location.info.windLevel[0];
         wind.setText(text);
-        text = weatherFragment.info.aqiLevel;
+        text = weatherFragment.location.info.aqiLevel;
         air.setText(text);
         for (int i = 0; i < 3; i ++) {
-            weekWeek[i].setText(weatherFragment.info.week[i + 1]);
-            text = weatherFragment.info.miniTemp[i + 1] + "/" + weatherFragment.info.maxiTemp[i + 1] + "°";
+            weekWeek[i].setText(weatherFragment.location.info.week[i + 1]);
+            text = weatherFragment.location.info.miniTemp[i + 1] + "/" + weatherFragment.location.info.maxiTemp[i + 1] + "°";
             tempWeek[i].setText(text);
         }
 

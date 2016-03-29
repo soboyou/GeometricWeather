@@ -1,4 +1,4 @@
-package wangdaye.com.geometricweather.UI;
+package wangdaye.com.geometricweather.View;
 
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
@@ -36,22 +36,17 @@ public class ManageDialog extends DialogFragment
         implements MyItemClickListener {
     // widget
     private EditText searchEditText;
-    private RecyclerView locationView;
 
-    // data
-    private List<LocationItem> locationItemList;
     private LocationItemAdapter locationItemAdapter;
 
-    private MyDatabaseHelper databaseHelper;
+    private SetLocationListener setLocationListener;
 
-    // TAG
-    //private final String TAG = "ManageDialog";
+    private MyDatabaseHelper databaseHelper;
 
 // life cycle
 
     @Override
-    public Dialog onCreateDialog(Bundle savedInstanceState)
-    {
+    public Dialog onCreateDialog(Bundle savedInstanceState) {
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         LayoutInflater inflater = getActivity().getLayoutInflater();
         @SuppressLint("InflateParams")
@@ -67,7 +62,7 @@ public class ManageDialog extends DialogFragment
 // initialize
 
     private void initData() {
-        this.locationItemList = new ArrayList<>();
+        List<LocationItem> locationItemList = new ArrayList<>();
         for (int i = 0; i < MainActivity.locationList.size(); i ++) {
             locationItemList.add(new LocationItem(MainActivity.locationList.get(i).location));
         }
@@ -94,10 +89,10 @@ public class ManageDialog extends DialogFragment
             }
         });
 
-        this.locationView = (RecyclerView) view.findViewById(R.id.dialog_location_view);
+        RecyclerView locationView = (RecyclerView) view.findViewById(R.id.dialog_location_view);
         RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(getActivity());
-        this.locationView.setLayoutManager(layoutManager);
-        this.locationView.setAdapter(this.locationItemAdapter);
+        locationView.setLayoutManager(layoutManager);
+        locationView.setAdapter(this.locationItemAdapter);
         ItemTouchHelper itemTouchHelper = new ItemTouchHelper(new SwipeCallback(
                         ItemTouchHelper.UP | ItemTouchHelper.DOWN,
                         ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT));
@@ -106,9 +101,12 @@ public class ManageDialog extends DialogFragment
 
 // interface
 
+    public void addLocationListener(SetLocationListener listener) {
+        this.setLocationListener = listener;
+    }
+
     @Override
     public void onItemClick(View view, int position) {
-        SetLocationListener setLocationListener = (SetLocationListener) getActivity();
         setLocationListener.onSetLocation(MainActivity.locationList.get(position).location, false);
         dismiss();
     }
@@ -164,11 +162,6 @@ public class ManageDialog extends DialogFragment
             String location = MainActivity.locationList.get(position).location;
             initDatabaseHelper();
             deleteLocation(location);
-
-            if (MainActivity.lastLocation.location.equals(MainActivity.locationList.get(position).location)) {
-                WeatherFragment.locationCollect.setImageResource(R.drawable.ic_collect_no);
-                WeatherFragment.isCollected = false;
-            }
 
             MainActivity.locationList.remove(position);
             locationItemAdapter.removeData(position);

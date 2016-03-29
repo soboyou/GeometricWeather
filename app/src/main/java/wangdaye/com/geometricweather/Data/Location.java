@@ -7,28 +7,26 @@ package wangdaye.com.geometricweather.Data;
 public class Location {
     // data
     public String location;
-    public boolean update;
-    public JuheResult juheResult;
-    public HefengResult hefengResult;
+    public WeatherInfoToShow info;
+    public HourlyData hourlyData;
 
     public Location(String location) {
         this.location = location;
-        this.update = false;
-        juheResult = null;
-        hefengResult = null;
+        info = null;
     }
 
-    public Location(String location, boolean update) {
+    public Location(String location, WeatherInfoToShow info) {
         this.location = location;
-        this.update = update;
-        juheResult = null;
-        hefengResult = null;
+        this.info = info;
     }
 
-    public Location(String location, boolean update, JuheResult juheResult, HefengResult hefengResult) {
+    public Location(String location, WeatherInfoToShow info, HourlyData hourlyData) {
         this.location = location;
-        this.update = update;
-        this.juheResult = juheResult;
-        this.hefengResult = hefengResult;
+        this.info = info;
+        this.hourlyData = hourlyData;
+    }
+
+    public static boolean engLocation(String location) {
+        return location.replaceAll(" ", "").matches("[a-zA-Z]+");
     }
 }
