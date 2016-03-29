@@ -40,7 +40,7 @@
 * 酷安： http://www.coolapk.com/apk/wangdaye.com.geometricweather
 * 小米应用商店： http://app.mi.com/detail/245625?ref=search
 * 豌豆荚： http://www.wandoujia.com/apps/wangdaye.com.geometricweather
-* google play： 筹备中...
+* google play： 一到两周内上架
 * 其他市场暂未有上线计划。
 
 ### 感谢
@@ -59,7 +59,8 @@
 ### 作者留言
 
 * 禁止使用代码中的apiKey，代码里所有的api都是免费的，若有需求，请自行注册。
-* 内存泄漏的问题已经解决了。
+* 修复了一些不合乎规范的组建使用方法，优化了代码的结构，尤其是Location类的组成。
+* 近期还会继续对代码进行重构，并添加英文，一到两周内上架Google Play.
 * 作者想写点别的东西，有啥有意思的api欢迎联系作者..
 * 作者学习android开发没多久，水平渣渣...
 
