@@ -1,6 +1,7 @@
 package wangdaye.com.geometricweather.View;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.DialogFragment;
@@ -76,14 +77,21 @@ public class ManageDialog extends DialogFragment
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
                 if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                    SetLocationListener setLocationListener = (SetLocationListener) getActivity();
-                    String location = v.getText().toString();
-                    searchEditText.setText("");
-                    if (location.length() > 0) {
-                        setLocationListener.onSetLocation(location, true);
-                    } else {
-                        setLocationListener.onSetLocation(getString(R.string.search_null), true);
-                    } dismiss();
+                    Activity activity = getActivity();
+                    if (activity instanceof MainActivity) {
+                        MainActivity mainActivity = (MainActivity) activity;
+                        if (mainActivity.getWeatherFragment() != null) {
+                            SetLocationListener setLocationListener = mainActivity.getWeatherFragment();
+                            String location = v.getText().toString();
+                            searchEditText.setText("");
+                            if (location.length() > 0) {
+                                setLocationListener.onSetLocation(location, true);
+                            } else {
+                                setLocationListener.onSetLocation(getString(R.string.search_null), true);
+                            }
+                        }
+                    }
+                    dismiss();
                 }
                 return false;
             }

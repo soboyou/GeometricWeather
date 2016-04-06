@@ -765,4 +765,8 @@ public class MainActivity extends AppCompatActivity
                 break;
         }
     }
+
+    public WeatherFragment getWeatherFragment() {
+        return weatherFragment;
+    }
 }
