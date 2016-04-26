@@ -247,6 +247,7 @@ public class MainActivity extends AppCompatActivity
                 @Override
                 public void run() {
                     ManageDialog dialog = new ManageDialog();
+                    dialog.addLocationListener(weatherFragment);
                     dialog.show(getFragmentManager(), "ManageDialog");
                 }
             };
