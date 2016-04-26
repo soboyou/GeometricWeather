@@ -16,6 +16,7 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.Message;
 import android.preference.PreferenceManager;
 import android.provider.MediaStore;
@@ -73,6 +74,8 @@ import wangdaye.com.geometricweather.Widget.SafeHandler;
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener,
         HandlerContainer {
+    private Handler mDelayHandler;
+
     // widget
     public static SafeHandler<MainActivity> safeHandler;
     private WeatherFragment weatherFragment;
@@ -112,6 +115,7 @@ public class MainActivity extends AppCompatActivity
         setContentView(R.layout.activity_main);
 
         safeHandler = new SafeHandler<>(this);
+        mDelayHandler = new Handler();
         this.initDatabaseHelper();
         this.initData();
         MainActivity.initNavigationBar(this, getWindow());
@@ -242,36 +246,30 @@ public class MainActivity extends AppCompatActivity
         int id = item.getItemId();
 
         if (id == R.id.nav_manage) {
-            Timer timer = new Timer();
-            TimerTask timerTask = new TimerTask() {
+            mDelayHandler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
                     ManageDialog dialog = new ManageDialog();
                     dialog.addLocationListener(weatherFragment);
                     dialog.show(getFragmentManager(), "ManageDialog");
                 }
-            };
-            timer.schedule(timerTask, 400);
+            },400);
         } else if (id == R.id.nav_settings) {
-            final Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
-            Timer timer = new Timer();
-            TimerTask timerTask = new TimerTask() {
+            mDelayHandler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
+                    Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
                     startActivityForResult(intent, SETTINGS_ACTIVITY);
                 }
-            };
-            timer.schedule(timerTask, 400);
+            }, 400);
         } else if (id == R.id.nav_about) {
-            final Intent intent = new Intent(MainActivity.this, AboutAppActivity.class);
-            Timer timer = new Timer();
-            TimerTask timerTask = new TimerTask() {
+            mDelayHandler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
+                    Intent intent = new Intent(MainActivity.this, AboutAppActivity.class);
                     startActivity(intent);
                 }
-            };
-            timer.schedule(timerTask, 400);
+            },400);
         }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
